@@ -99,7 +99,7 @@ export default function Home() {
             </a>
 
             <div className="pt-8 flex items-center gap-2 text-sm text-stone-500">
-              Built by Asterscholar Team with Next.js
+              Built by Asterverse Team
             </div>
           </motion.div>
 
