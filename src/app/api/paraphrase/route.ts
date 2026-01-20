@@ -5,7 +5,7 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
     const {
-        text,
+        prompt: text,
         strength = 'Medium',
         tone = 'Academic',
         preserveCitations = true,
