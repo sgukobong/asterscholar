@@ -1,10 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Sparkles, Check, Zap, Crown, Building2, ArrowLeft, Search, MessageSquare, ShieldCheck, CreditCard } from 'lucide-react';
+import { Sparkles, Check, Zap, Crown, Building2, ArrowLeft, Search, MessageSquare, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useDodoPayments } from 'dodo-payments-sdk';
+import { useState } from 'react';
 
 export default function UpgradePage() {
+    const { dodo } = useDodoPayments();
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const tiers = [
         {
             name: "Student",
@@ -13,7 +17,8 @@ export default function UpgradePage() {
             features: ["50 Verification Credits /mo", "Standard Paraphraser", "Literature Summaries", "Basic Co-Pilot access"],
             icon: <Zap size={24} className="text-stone-400" />,
             button: "Current Plan",
-            current: true
+            current: true,
+            productId: "p_free"
         },
         {
             name: "Scholar",
@@ -24,7 +29,8 @@ export default function UpgradePage() {
             icon: <Crown size={24} className="text-black" />,
             button: "Go Pro",
             current: false,
-            popular: true
+            popular: true,
+            productId: "p_scholar"
         },
         {
             name: "Institution",
@@ -33,9 +39,27 @@ export default function UpgradePage() {
             features: ["SSO & Team Management", "Institutional Knowledge Base", "Bulk Citation Audits", "Dedicated Support", "On-premise deployment options"],
             icon: <Building2 size={24} className="text-stone-600" />,
             button: "Contact Sales",
-            current: false
+            current: false,
+            productId: "p_institution"
         }
     ];
+
+    const handleUpgrade = async (productId: string, planName: string) => {
+        setLoadingPlan(planName);
+        try {
+            const res = await fetch(`/api/payments/checkout?product_id=${productId}`, {
+                method: 'POST'
+            });
+            if (!res.ok) throw new Error("Failed to create checkout");
+            const { checkout_url } = await res.json();
+            dodo.checkout({ checkoutUrl: checkout_url });
+        } catch (error) {
+            console.error("Upgrade error:", error);
+            alert("Upgrade failed. Please try again.");
+        } finally {
+            setLoadingPlan(null);
+        }
+    };
 
     return (
         <div className="p-8 md:p-12 w-full h-screen flex items-center justify-center bg-[#EAE8E2]">
@@ -97,8 +121,8 @@ export default function UpgradePage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.1 }}
                                     className={`p-8 rounded-[2rem] border transition-all ${tier.popular
-                                            ? "bg-black text-white border-black shadow-2xl shadow-black/20 -translate-y-2"
-                                            : "bg-[#FAF9F6] border-stone-100 hover:bg-white hover:shadow-xl hover:shadow-stone-200/50"
+                                        ? "bg-black text-white border-black shadow-2xl shadow-black/20 -translate-y-2"
+                                        : "bg-[#FAF9F6] border-stone-100 hover:bg-white hover:shadow-xl hover:shadow-stone-200/50"
                                         }`}
                                 >
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${tier.popular ? "bg-white/10" : "bg-white shadow-sm"}`}>
@@ -122,13 +146,20 @@ export default function UpgradePage() {
                                         ))}
                                     </div>
 
-                                    <button className={`w-full py-4 rounded-2xl font-bold transition-all shadow-sm ${tier.popular
+                                    <button
+                                        onClick={() => !tier.current && tier.productId && handleUpgrade(tier.productId, tier.name)}
+                                        disabled={tier.current || !!loadingPlan}
+                                        className={`w-full py-4 rounded-2xl font-bold transition-all shadow-sm flex items-center justify-center gap-2 ${tier.popular
                                             ? "bg-white text-black hover:bg-stone-200"
                                             : tier.current
                                                 ? "bg-stone-200 text-stone-500 cursor-default"
                                                 : "bg-black text-white hover:shadow-black/20 hover:-translate-y-1"
-                                        }`}>
-                                        {tier.button}
+                                            }`}>
+                                        {loadingPlan === tier.name ? (
+                                            <Loader2 size={18} className="animate-spin" />
+                                        ) : (
+                                            tier.button
+                                        )}
                                     </button>
                                 </motion.div>
                             ))}

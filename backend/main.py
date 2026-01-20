@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from auth import auth_backend, fastapi_users, current_active_user
 from db import User, create_db_and_tables
 from schemas import UserCreate, UserRead, UserUpdate
+from payments import router as payments_router
 
 import traceback
 import logging
@@ -62,6 +63,7 @@ app.include_router(
     prefix="/users",
     tags=["users"],
 )
+app.include_router(payments_router)
 
 @app.on_event("startup")
 async def on_startup():

@@ -1,6 +1,7 @@
 'use client';
 
 import { AuthProvider } from '@/components/auth/AuthContext';
+import { DodoPaymentsProvider } from 'dodo-payments-sdk';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -13,9 +14,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <DodoPaymentsProvider mode="test">
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </DodoPaymentsProvider>
       </body>
     </html>
   );

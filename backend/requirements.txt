@@ -9,3 +9,4 @@ pydantic[email]
 python-dotenv
 httpx
 google-auth
+dodopayments
