@@ -60,9 +60,14 @@ export default function Home() {
           </div>
           <span className="text-xl font-bold tracking-tight">Asterscholar</span>
         </div>
-        <a href="/co-pilot" className="text-sm font-medium hover:text-black hover:underline transition-colors hidden md:block">
-          Research Co-Pilot <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-full ml-1">NEW</span>
-        </a>
+        <div className="hidden md:flex items-center gap-6">
+          <a href="/paraphraser" className="text-sm font-medium hover:text-black hover:underline transition-colors">
+            Paraphraser
+          </a>
+          <a href="/co-pilot" className="text-sm font-medium hover:text-black hover:underline transition-colors">
+            Research Co-Pilot <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-full ml-1">NEW</span>
+          </a>
+        </div>
         <button className="px-6 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-stone-800 transition-colors shadow-lg shadow-black/10">
           Login
         </button>
@@ -80,10 +85,10 @@ export default function Home() {
             className="space-y-8"
           >
             <h1 className="text-6xl md:text-7xl font-semibold tracking-tighter leading-[0.95] max-w-2xl">
-              AI Powered<br />
-              primary research<br />
-              platform for<br />
-              researchers
+              Asterscholar —<br />
+              AI Powered primary<br />
+              research platform<br />
+              for researchers
             </h1>
             <p className="text-muted text-lg max-w-lg leading-relaxed">
               Enhance your research and benefit from industry-leading
@@ -99,7 +104,7 @@ export default function Home() {
             </a>
 
             <div className="pt-8 flex items-center gap-2 text-sm text-stone-500">
-              Built by Asterverse Team
+              Built by Asterscholar Team
             </div>
           </motion.div>
 

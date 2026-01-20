@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { motion } from 'framer-motion';
 import { ChatMessage } from '@/components/chat/ChatMessage';
-import { Sparkles, Send, ArrowLeft, FileText, ChevronRight } from 'lucide-react';
+import { Sparkles, Send, ArrowLeft, FileText, ChevronRight, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { DraftPreview } from '@/components/chat/DraftPreview';
@@ -132,15 +132,22 @@ export default function CoPilotPage() {
                             return (
                                 <div key={m.id} className="group relative">
                                     <ChatMessage role={m.role as 'user' | 'assistant'} content={content} />
-                                    {m.role === 'assistant' && content.includes("## ") && (
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                         <button
                                             onClick={() => handleOpenDraft(content)}
-                                            className="absolute top-4 right-4 p-2 bg-stone-100 hover:bg-black hover:text-white rounded-lg transition-all opacity-0 group-hover:opacity-100 flex items-center gap-2 text-[10px] font-bold uppercase"
+                                            className="p-2 bg-stone-100 hover:bg-black hover:text-white rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase transition-colors"
                                         >
                                             <FileText size={12} />
                                             Open in Editor
                                         </button>
-                                    )}
+                                        <Link
+                                            href={`/paraphraser?text=${encodeURIComponent(content.substring(0, 1000))}`}
+                                            className="p-2 bg-stone-100 hover:bg-black hover:text-white rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase transition-colors"
+                                        >
+                                            <RotateCcw size={12} />
+                                            Paraphrase
+                                        </Link>
+                                    </div>
                                 </div>
                             );
                         })}

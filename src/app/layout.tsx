@@ -6,7 +6,7 @@ const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Asterscholar",
-  description: "AI Powered primary research platform for researchers.",
+  description: "Asterscholar — AI Powered Primary Research Platform for Researchers",
 };
 
 export default function RootLayout({
