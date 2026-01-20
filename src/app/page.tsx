@@ -86,9 +86,9 @@ export default function Home() {
           >
             <h1 className="text-6xl md:text-7xl font-semibold tracking-tighter leading-[0.95] max-w-2xl">
               Asterscholar —<br />
-              AI Powered primary<br />
-              research platform<br />
-              for researchers
+              AI Powered Primary<br />
+              Research Platform<br />
+              for Researchers
             </h1>
             <p className="text-muted text-lg max-w-lg leading-relaxed">
               Enhance your research and benefit from industry-leading
