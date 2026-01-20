@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+fastapi-users[sqlalchemy]
+aiosqlite
+argon2-cffi
+python-jose[cryptography]
+python-multipart
+pydantic[email]
+python-dotenv
+httpx
+google-auth

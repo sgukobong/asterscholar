@@ -1,23 +1,21 @@
-import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
-import "./globals.css";
+'use client';
 
-const outfit = Outfit({ subsets: ["latin"] });
+import { AuthProvider } from '@/components/auth/AuthContext';
+import { Inter } from 'next/font/google';
 
-export const metadata: Metadata = {
-  title: "Asterscholar",
-  description: "Asterscholar — AI Powered Primary Research Platform for Researchers",
-};
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${outfit.className} bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen`}>
-        {children}
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
