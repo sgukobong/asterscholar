@@ -1,20 +1,32 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    User as FirebaseUser,
+    GoogleAuthProvider,
+    signInWithPopup
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
 
 interface User {
-    id: string;
+    uid: string;
     email: string;
-    is_active: boolean;
-    is_verified: boolean;
+    displayName: string | null;
+    subscriptionTier: 'free' | 'scholar' | 'institution';
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (email: string, password: string) => Promise<void>;
+    signup: (email: string, password: string) => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
-    checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -23,50 +35,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const checkAuth = async () => {
-        try {
-            const res = await fetch('/api/users/me');
-            if (res.ok) {
-                const data = await res.json();
-                setUser(data);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+            if (firebaseUser) {
+                // Fetch user profile from Firestore
+                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                const userData = userDoc.data();
+
+                setUser({
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email!,
+                    displayName: firebaseUser.displayName,
+                    subscriptionTier: userData?.subscriptionTier || 'free',
+                });
             } else {
                 setUser(null);
             }
-        } catch (e) {
-            setUser(null);
-        } finally {
             setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const login = async (email: string, password: string) => {
-        const formData = new FormData();
-        formData.append('username', email); // fastapi-users uses 'username' for OAuth2
-        formData.append('password', password);
-
-        const res = await fetch('/api/auth/jwt/login', {
-            method: 'POST',
-            body: formData,
         });
 
-        if (!res.ok) {
-            throw new Error('Invalid credentials');
-        }
+        return () => unsubscribe();
+    }, []);
 
-        await checkAuth();
+    const signup = async (email: string, password: string) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+        // Create user profile in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+            email: userCredential.user.email,
+            displayName: userCredential.user.displayName || email.split('@')[0],
+            subscriptionTier: 'free',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+    };
+
+    const login = async (email: string, password: string) => {
+        await signInWithEmailAndPassword(auth, email, password);
+    };
+
+    const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+
+        // Check if user profile exists, create if not
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (!userDoc.exists()) {
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+                email: userCredential.user.email,
+                displayName: userCredential.user.displayName,
+                subscriptionTier: 'free',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        }
     };
 
     const logout = async () => {
-        await fetch('/api/auth/jwt/logout', { method: 'POST' });
-        setUser(null);
+        await signOut(auth);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>
+        <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, logout }}>
             {children}
         </AuthContext.Provider>
     );

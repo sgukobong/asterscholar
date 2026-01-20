@@ -8,32 +8,57 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-    const { login } = useAuth();
+    const { login, signup, loginWithGoogle } = useAuth();
     const router = useRouter();
     const [step, setStep] = useState<'email' | 'password' | 'signup'>('email');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isNewUser, setIsNewUser] = useState(false);
 
     const handleNext = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
         if (step === 'email') {
-            // In a real app, check if user exists via backend
-            // For now, let's assume they might exist or we just go to password
+            // Move to password step (we'll determine signup vs login on submit)
             setStep('password');
         } else {
             setLoading(true);
             try {
-                await login(email, password);
-                router.push('/dashboard');
+                if (isNewUser) {
+                    await signup(email, password);
+                } else {
+                    await login(email, password);
+                }
+                router.push('/');
             } catch (err: any) {
-                setError(err.message || 'Login failed');
+                // If login fails, might be new user
+                if (err.code === 'auth/user-not-found') {
+                    setIsNewUser(true);
+                    setError('Account not found. Creating new account...');
+                    try {
+                        await signup(email, password);
+                        router.push('/');
+                    } catch (signupErr: any) {
+                        setError(signupErr.message || 'Signup failed');
+                    }
+                } else {
+                    setError(err.message || 'Authentication failed');
+                }
             } finally {
                 setLoading(false);
             }
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        try {
+            await loginWithGoogle();
+            router.push('/');
+        } catch (err: any) {
+            setError(err.message || 'Google login failed');
         }
     };
 
@@ -141,7 +166,10 @@ export default function LoginPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button className="flex items-center justify-center gap-3 py-3 border border-stone-100 rounded-xl hover:bg-stone-50 transition-all font-medium">
+                                <button
+                                    type="button"
+                                    onClick={handleGoogleLogin}
+                                    className="flex items-center justify-center gap-3 py-3 border border-stone-100 rounded-xl hover:bg-stone-50 transition-all font-medium">
                                     <Globe size={18} />
                                     <span>Google</span>
                                 </button>

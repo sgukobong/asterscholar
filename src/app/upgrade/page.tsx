@@ -3,11 +3,9 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Check, Zap, Crown, Building2, ArrowLeft, Search, MessageSquare, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useDodoPayments } from 'dodo-payments-sdk';
 import { useState } from 'react';
 
 export default function UpgradePage() {
-    const { dodo } = useDodoPayments();
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const tiers = [
         {
@@ -52,11 +50,12 @@ export default function UpgradePage() {
             });
             if (!res.ok) throw new Error("Failed to create checkout");
             const { checkout_url } = await res.json();
-            dodo.checkout({ checkoutUrl: checkout_url });
+
+            // Redirect to Dodo Payments checkout page
+            window.location.href = checkout_url;
         } catch (error) {
             console.error("Upgrade error:", error);
             alert("Upgrade failed. Please try again.");
-        } finally {
             setLoadingPlan(null);
         }
     };
