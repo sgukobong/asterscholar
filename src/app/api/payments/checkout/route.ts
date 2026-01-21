@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DodoPayments } from 'dodopayments';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 const dodoClient = new DodoPayments({
     bearerToken: process.env.DODO_API_KEY!,
@@ -15,15 +17,31 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
         }
 
-        // TODO: Get user from Firebase Auth token
-        // For now, using a placeholder email
-        const userEmail = 'user@example.com';
+        // Get user from Supabase Auth
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
+                    },
+                },
+            }
+        );
+
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         const session = await dodoClient.checkoutSessions.create({
             productCart: [{ productId, quantity: 1 }],
-            customer: { email: userEmail },
+            customer: { email: user.email! },
             returnUrl: 'http://localhost:3000/?upgrade=success',
-            metadata: { userId: 'placeholder' },
+            metadata: { userId: user.id },
         });
 
         return NextResponse.json({ checkout_url: session.checkoutUrl });
