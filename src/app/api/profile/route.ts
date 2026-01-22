@@ -49,6 +49,30 @@ export async function GET(request: NextRequest) {
     }
 }
 
+const ALLOWED_FIELDS = ['display_name', 'bio', 'institution', 'research_interests'];
+const MAX_LENGTHS = { display_name: 100, bio: 500, institution: 200 };
+
+function validateUpdates(updates: any) {
+    const sanitized: any = {};
+    
+    for (const [key, value] of Object.entries(updates)) {
+        if (!ALLOWED_FIELDS.includes(key)) continue;
+        
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            const maxLen = MAX_LENGTHS[key as keyof typeof MAX_LENGTHS];
+            if (maxLen && trimmed.length > maxLen) {
+                throw new Error(`${key} exceeds maximum length of ${maxLen}`);
+            }
+            sanitized[key] = trimmed;
+        } else if (key === 'research_interests' && Array.isArray(value)) {
+            sanitized[key] = value.filter(i => typeof i === 'string' && i.trim()).slice(0, 10);
+        }
+    }
+    
+    return sanitized;
+}
+
 export async function PUT(request: NextRequest) {
     try {
         const { userId, updates } = await request.json();
@@ -57,9 +81,11 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'User ID required' }, { status: 400 });
         }
 
+        const sanitizedUpdates = validateUpdates(updates);
+        
         const { data, error } = await supabase
             .from('users')
-            .update(updates)
+            .update(sanitizedUpdates)
             .eq('id', userId)
             .select()
             .single();

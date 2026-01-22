@@ -35,6 +35,8 @@ export default function ProfilePage() {
     const [activity, setActivity] = useState<ActivitySummary | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [updateLoading, setUpdateLoading] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -45,6 +47,7 @@ export default function ProfilePage() {
 
     const loadProfile = async () => {
         try {
+            setError(null);
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
@@ -53,14 +56,16 @@ export default function ProfilePage() {
 
             if (error) throw error;
             setProfile(data);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error loading profile:', error);
+            setError('Failed to load profile. Please refresh the page.');
         }
     };
 
     const loadActivity = async () => {
         try {
-            await supabase.rpc('update_activity_summary', { user_uuid: user?.uid });
+            const { error: rpcError } = await supabase.rpc('update_activity_summary', { user_uuid: user?.uid });
+            if (rpcError) console.warn('Activity update failed:', rpcError);
             
             const { data, error } = await supabase
                 .from('user_activity_summary')
@@ -68,9 +73,9 @@ export default function ProfilePage() {
                 .eq('user_id', user?.uid)
                 .single();
 
-            if (error) throw error;
-            setActivity(data);
-        } catch (error) {
+            if (error && error.code !== 'PGRST116') throw error;
+            setActivity(data || null);
+        } catch (error: any) {
             console.error('Error loading activity:', error);
         } finally {
             setLoading(false);
@@ -79,6 +84,9 @@ export default function ProfilePage() {
 
     const updateProfile = async (updates: Partial<UserProfile>) => {
         try {
+            setUpdateLoading(true);
+            setError(null);
+            
             const { error } = await supabase
                 .from('users')
                 .update(updates)
@@ -87,8 +95,11 @@ export default function ProfilePage() {
             if (error) throw error;
             setProfile(prev => prev ? { ...prev, ...updates } : null);
             setIsEditing(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating profile:', error);
+            setError('Failed to update profile. Please try again.');
+        } finally {
+            setUpdateLoading(false);
         }
     };
 
@@ -103,6 +114,11 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-[#EAE8E2] p-6">
             <div className="max-w-6xl mx-auto">
+                {error && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                        {error}
+                    </div>
+                )}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -130,10 +146,11 @@ export default function ProfilePage() {
                             </div>
                             <button
                                 onClick={() => setIsEditing(!isEditing)}
-                                className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:bg-stone-800 transition-colors"
+                                disabled={updateLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:bg-stone-800 transition-colors disabled:opacity-50"
                             >
                                 <Edit3 size={16} />
-                                {isEditing ? 'Cancel' : 'Edit Profile'}
+                                {updateLoading ? 'Saving...' : isEditing ? 'Cancel' : 'Edit Profile'}
                             </button>
                         </div>
                     </div>
@@ -174,9 +191,29 @@ function ProfileSection({ title, icon, isEditing, profile, onUpdate }: any) {
         bio: profile?.bio || '',
         institution: profile?.institution || ''
     });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+        
+        if (formData.display_name.length > 100) {
+            newErrors.display_name = 'Display name must be 100 characters or less';
+        }
+        if (formData.bio.length > 500) {
+            newErrors.bio = 'Bio must be 500 characters or less';
+        }
+        if (formData.institution.length > 200) {
+            newErrors.institution = 'Institution must be 200 characters or less';
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleSave = () => {
-        onUpdate(formData);
+        if (validateForm()) {
+            onUpdate(formData);
+        }
     };
 
     return (
@@ -188,27 +225,42 @@ function ProfileSection({ title, icon, isEditing, profile, onUpdate }: any) {
             
             {isEditing ? (
                 <div className="space-y-4">
-                    <input
-                        type="text"
-                        placeholder="Display Name"
-                        value={formData.display_name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                        className="w-full p-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Institution"
-                        value={formData.institution}
-                        onChange={(e) => setFormData(prev => ({ ...prev, institution: e.target.value }))}
-                        className="w-full p-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5"
-                    />
-                    <textarea
-                        placeholder="Bio"
-                        value={formData.bio}
-                        onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                        rows={3}
-                        className="w-full p-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 resize-none"
-                    />
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Display Name"
+                            value={formData.display_name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
+                            className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 ${
+                                errors.display_name ? 'border-red-300' : 'border-stone-200'
+                            }`}
+                        />
+                        {errors.display_name && <p className="text-red-500 text-sm mt-1">{errors.display_name}</p>}
+                    </div>
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Institution"
+                            value={formData.institution}
+                            onChange={(e) => setFormData(prev => ({ ...prev, institution: e.target.value }))}
+                            className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 ${
+                                errors.institution ? 'border-red-300' : 'border-stone-200'
+                            }`}
+                        />
+                        {errors.institution && <p className="text-red-500 text-sm mt-1">{errors.institution}</p>}
+                    </div>
+                    <div>
+                        <textarea
+                            placeholder="Bio"
+                            value={formData.bio}
+                            onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                            rows={3}
+                            className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 resize-none ${
+                                errors.bio ? 'border-red-300' : 'border-stone-200'
+                            }`}
+                        />
+                        {errors.bio && <p className="text-red-500 text-sm mt-1">{errors.bio}</p>}
+                    </div>
                     <button
                         onClick={handleSave}
                         className="px-4 py-2 bg-black text-white rounded-xl hover:bg-stone-800 transition-colors"
@@ -239,14 +291,21 @@ function ResearchInterests({ isEditing, interests, onUpdate }: any) {
     const [newInterest, setNewInterest] = useState('');
 
     const addInterest = () => {
-        if (newInterest.trim() && !interests.includes(newInterest.trim())) {
-            onUpdate([...interests, newInterest.trim()]);
+        const trimmed = newInterest.trim();
+        if (trimmed && !interests.includes(trimmed) && trimmed.length <= 50) {
+            onUpdate([...interests, trimmed]);
             setNewInterest('');
         }
     };
 
     const removeInterest = (interest: string) => {
         onUpdate(interests.filter((i: string) => i !== interest));
+    };
+
+    const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     };
 
     return (
@@ -262,7 +321,7 @@ function ResearchInterests({ isEditing, interests, onUpdate }: any) {
                         key={interest}
                         className="px-3 py-1 bg-white border border-stone-200 rounded-full text-sm flex items-center gap-2"
                     >
-                        {interest}
+                        <span dangerouslySetInnerHTML={{ __html: escapeHtml(interest) }} />
                         {isEditing && (
                             <button
                                 onClick={() => removeInterest(interest)}
@@ -279,10 +338,11 @@ function ResearchInterests({ isEditing, interests, onUpdate }: any) {
                 <div className="flex gap-2">
                     <input
                         type="text"
-                        placeholder="Add research interest"
+                        placeholder="Add research interest (max 50 chars)"
                         value={newInterest}
                         onChange={(e) => setNewInterest(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addInterest()}
+                        maxLength={50}
                         className="flex-1 p-2 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5"
                     />
                     <button
@@ -339,15 +399,15 @@ function QuickActions() {
             </div>
             
             <div className="space-y-2">
-                <button className="w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
+                <a href="/api/export" className="block w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
                     Export Research Data
-                </button>
-                <button className="w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
+                </a>
+                <a href="/upgrade" className="block w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
                     Manage Subscription
-                </button>
-                <button className="w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
+                </a>
+                <a href="/privacy" className="block w-full text-left p-3 hover:bg-white rounded-xl transition-colors text-sm">
                     Privacy Settings
-                </button>
+                </a>
             </div>
         </div>
     );
