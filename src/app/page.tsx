@@ -5,6 +5,7 @@ import { Search, Sparkles, ShieldCheck, MessageSquare, ArrowRight, Share2, BookO
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Navigation from '@/components/Navigation';
 
 export default function Home() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function Home() {
 
   return (
     <div className="p-4 md:p-8 lg:p-12 w-full h-screen flex items-center justify-center bg-[#EAE8E2]">
+      <Navigation />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -110,8 +112,7 @@ export default function Home() {
               className="text-center mb-10"
             >
               <h1 className="text-5xl md:text-6xl font-semibold tracking-tighter leading-[1.1] text-black">
-                Asterscholar — AI Powered<br />
-                Primary Research Platform<br />
+                AI Powered Primary Research Platform<br />
                 for Researchers
               </h1>
             </motion.div>

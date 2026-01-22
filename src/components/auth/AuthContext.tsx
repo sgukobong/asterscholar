@@ -41,6 +41,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
                 await loadUserProfile(session.user);
+                
+                // Create profile for new OAuth users
+                if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
+                    const { error: profileError } = await supabase
+                        .from('users')
+                        .upsert({
+                            id: session.user.id,
+                            email: session.user.email!,
+                            display_name: session.user.user_metadata?.full_name || session.user.email!.split('@')[0],
+                            subscription_tier: 'free' as const,
+                        }, {
+                            onConflict: 'id'
+                        });
+                    
+                    if (profileError) {
+                        console.warn('Profile creation for OAuth user:', profileError.message);
+                    }
+                }
             } else {
                 setUser(null);
                 setLoading(false);
@@ -63,17 +81,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (error && error.code !== 'PGRST116') {
                 // PGRST116 = no rows returned, which is fine for new users
-                console.error('Error loading user profile:', error);
+                // Handle missing table or other database errors gracefully
+                console.warn('User profile table may not exist:', error.message);
             }
 
             setUser({
                 uid: supabaseUser.id,
                 email: supabaseUser.email!,
-                displayName: userProfile?.display_name || supabaseUser.user_metadata?.display_name || null,
+                displayName: userProfile?.display_name || supabaseUser.user_metadata?.display_name || supabaseUser.user_metadata?.full_name || null,
                 subscriptionTier: userProfile?.subscription_tier || 'free',
             });
         } catch (error) {
-            console.error('Error in loadUserProfile:', error);
+            console.warn('Error in loadUserProfile, using auth data only:', error);
+            // Fallback to auth data only
+            setUser({
+                uid: supabaseUser.id,
+                email: supabaseUser.email!,
+                displayName: supabaseUser.user_metadata?.display_name || supabaseUser.user_metadata?.full_name || null,
+                subscriptionTier: 'free',
+            });
         } finally {
             setLoading(false);
         }
@@ -87,20 +113,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (error) throw error;
 
+        // Skip profile creation if table doesn't exist - auth still works
         if (data.user) {
-            // Create user profile in database
-            const { error: profileError } = await supabase
-                .from('users')
-                .insert({
-                    id: data.user.id,
-                    email: data.user.email!,
-                    display_name: email.split('@')[0],
-                    subscription_tier: 'free',
-                });
+            try {
+                const { error: profileError } = await supabase
+                    .from('users')
+                    .upsert({
+                        id: data.user.id,
+                        email: data.user.email!,
+                        display_name: email.split('@')[0],
+                        subscription_tier: 'free' as const,
+                    }, {
+                        onConflict: 'id'
+                    });
 
-            if (profileError) {
-                console.error('Error creating user profile:', profileError);
-                // Don't throw - auth succeeded, profile creation is secondary
+                if (profileError) {
+                    console.warn('Profile creation skipped:', profileError.message);
+                }
+            } catch (err) {
+                console.warn('Users table not available, auth still works');
             }
         }
     };
@@ -119,6 +150,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             provider: 'google',
             options: {
                 redirectTo: `${window.location.origin}/`,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
             },
         });
 
