@@ -7,19 +7,26 @@ import { searchCrossref } from '@/lib/crossref';
 export const maxDuration = 60;
 
 const ReferenceSchema = z.object({
-    correctedText: z.string().describe('The full manuscript text with corrected citations'),
+    correctedText: z.string().describe('The full manuscript text with corrected citations in APA 7th edition format'),
+    originalText: z.string().describe('The original manuscript text before corrections'),
     log: z.array(z.object({
         original: z.string().describe('The original citation from the input'),
-        corrected: z.string().describe('The corrected citation or reference entry'),
+        corrected: z.string().describe('The corrected citation or reference entry in APA 7th edition'),
         status: z.enum(['Verified', 'Corrected', 'Fabricated', 'Unverifiable']),
         details: z.string().describe('Explanation of the verification result'),
+        reason: z.string().describe('Reason for the change (if corrected or fabricated)'),
         paper: z.object({
             title: z.string(),
             authors: z.string(),
             year: z.number().nullable(),
             url: z.string()
         }).optional()
-    }))
+    })),
+    auditReport: z.array(z.object({
+        originalReference: z.string().describe('The original reference as cited'),
+        correctionMade: z.string().describe('The corrected reference'),
+        reasonForChange: z.string().describe('Why this change was made')
+    })).describe('Audit report table: [Original | Correction | Reason]')
 });
 
 export async function POST(req: Request) {
@@ -64,17 +71,26 @@ export async function POST(req: Request) {
                 corrected: p.title || 'N/A',
                 status: 'Verified' as const,
                 details: 'Demo mode: matched paper via keyword search',
+                reason: 'Verified through Semantic Scholar keyword search (demo mode)',
                 paper: {
                     title: p.title,
                     authors: (p.authors || []).map((a: any) => a.name).join(', '),
                     year: p.year || null,
                     url: p.url || ''
                 }
-            })) : [{ original: requestText?.slice(0, 120) || '', corrected: requestText || '', status: 'Unverifiable' as const, details: 'Demo mode: no matches found', paper: undefined }];
+            })) : [{ original: requestText?.slice(0, 120) || '', corrected: requestText || '', status: 'Unverifiable' as const, details: 'Demo mode: no matches found', reason: 'No matches found in demo mode', paper: undefined }];
+
+            const demoAuditReport = (papers && papers.length > 0) ? papers.map((p: any) => ({
+                originalReference: p.title?.slice(0, 120) || 'N/A',
+                correctionMade: p.title || 'N/A',
+                reasonForChange: 'Verified through Semantic Scholar keyword search'
+            })) : [];
 
             const demoResult = {
                 correctedText: requestText,
+                originalText: requestText,
                 log: demoLog,
+                auditReport: demoAuditReport,
             };
 
             return new Response(JSON.stringify(demoResult), {
@@ -124,14 +140,20 @@ export async function POST(req: Request) {
         try {
             verificationSession = await tryModels(candidateGoogleModels, (model) => (generateText as any)({
             model,
-            system: `You are Asterscholar's Reference Verification Engine. 
-Your goal is to identify every in-text citation and reference in the text and verify them.
-STRICT PROTOCOL:
-1. For each citation, use 'searchScholarlyPapers' once.
-2. If the paper is found, record the details (title, authors, year, url).
-3. If not found, look for the most relevant authentic alternative.
-4. Summarize each citation: Original string -> Verified/Corrected/Fabricated -> Official Reference.`,
-            prompt: `Text to analyze:\n\n${requestText}`,
+            system: `You are a Senior Academic Research Auditor and Expert Editor. Your primary objective is ensuring 100% accuracy, verifiability, and formatting integrity of academic manuscripts.
+
+WORKFLOW:
+1. Cross-Verification: Compare every in-text citation against the reference list.
+2. Authenticity Audit: Verify that authors, titles, journals, and years exist.
+3. Correction & Replacement: Correct "near-misses" (wrong year/misspelled author). Flag fabricated citations.
+4. APA 7th Edition Standardization: Format all references strictly per APA 7th (sentence case titles, proper italics, no publisher locations).
+
+For each citation:
+- Use 'searchScholarlyPapers' to find the authentic source.
+- Record: Original | Status (Verified/Corrected/Fabricated/Unverifiable) | Reason for change
+- If corrected, provide the APA 7th formatted version.
+- Do NOT change the academic voice unless there is a grammatical error.`,
+            prompt: `Academic Manuscript Section:\n\n${requestText}\n\nPerform a rigorous authenticity audit. For each citation, determine if it is Verified, Corrected, Fabricated, or Unverifiable.`,
             tools: {
                 searchScholarlyPapers: tool({
                     description: 'Search for scholarly papers to verify metadata and existence.',
@@ -193,9 +215,20 @@ STRICT PROTOCOL:
             const structuredResult: any = await tryModels(candidateGoogleModels, (model) => generateObject({
                 model,
                 schema: ReferenceSchema,
-                system: `You are a formatting assistant. Create a JSON report from the verification summary.
-Ensure 'correctedText' is the full original manuscript with all citations and references updated to the verified versions.`,
-                prompt: `Original Manuscript:\n${requestText}\n\nVerification Summary:\n${verificationSession.text}`,
+                system: `You are a Senior Academic Research Auditor. Generate a comprehensive JSON audit report.
+
+Required Output:
+- correctedText: Full manuscript with all citations corrected to APA 7th edition
+- originalText: The input text unchanged
+- log: Array of verification records with reason for each change
+- auditReport: Table format [Original Reference | Correction Made | Reason for Change]
+
+Guidelines:
+- Ensure 100% accuracy of corrected references in APA 7th edition format
+- Provide clear, specific reasons for each correction (e.g., "Year was 2021, verified as 2022", "Author misspelled: 'Jonson' → 'Johnson'")
+- For fabricated citations, explain why they are not found in scholarly databases
+- Maintain academic voice; do not rephrase the text unless correcting citations`,
+                prompt: `Original Manuscript:\n${requestText}\n\nVerification Summary:\n${verificationSession.text}\n\nGenerate a complete audit report with corrected references in APA 7th edition format.`,
             }));
 
             console.log('[Reference Finder] Verification complete. Sending results.');
@@ -237,15 +270,27 @@ Ensure 'correctedText' is the full original manuscript with all citations and re
                     corrected: p.title || 'N/A',
                     status: 'Verified' as const,
                     details: 'Matched via external scholarly sources (Semantic Scholar / Crossref)',
+                    reason: 'Verified through cross-referencing with Semantic Scholar and Crossref databases',
                     paper: {
                         title: p.title,
                         authors: p.authors || '',
                         year: p.year || null,
                         url: p.url || ''
                     }
-                })) : [{ original: requestText?.slice(0, 120) || '', corrected: requestText || '', status: 'Unverifiable' as const, details: 'No matches found via external sources', paper: undefined }];
+                })) : [{ original: requestText?.slice(0, 120) || '', corrected: requestText || '', status: 'Unverifiable' as const, details: 'No matches found via external sources', reason: 'Could not verify against scholarly databases', paper: undefined }];
 
-                const fallbackResult = { correctedText: requestText, log: demoLog };
+                const auditReport = papers.length > 0 ? papers.map((p: any) => ({
+                    originalReference: p.title?.slice(0, 120) || 'N/A',
+                    correctionMade: p.title || 'N/A',
+                    reasonForChange: 'Verified through cross-referencing with Semantic Scholar and Crossref databases'
+                })) : [];
+
+                const fallbackResult = { 
+                    correctedText: requestText, 
+                    originalText: requestText,
+                    log: demoLog,
+                    auditReport
+                };
                 return new Response(JSON.stringify(fallbackResult), { headers: { 'Content-Type': 'application/json' } });
             }
 

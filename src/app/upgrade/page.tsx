@@ -69,12 +69,12 @@ export default function UpgradePage() {
             >
                 {/* Sidebar */}
                 <aside className="w-64 border-r border-stone-100 bg-[#FAF9F6] flex flex-col p-6 hidden lg:flex">
-                    <div className="flex items-center gap-2 mb-10">
+                    <Link href="/" className="flex items-center gap-2 mb-10 hover:opacity-80 transition-opacity">
                         <div className="bg-black text-white p-1 rounded-full">
                             <Sparkles size={18} fill="currentColor" />
                         </div>
                         <span className="text-xl font-bold tracking-tight">Asterscholar</span>
-                    </div>
+                    </Link>
 
                     <nav className="space-y-2 flex-1">
                         <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">Account</div>

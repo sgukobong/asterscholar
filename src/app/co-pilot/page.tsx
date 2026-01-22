@@ -44,10 +44,10 @@ export default function CoPilotPage() {
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-4 border-b border-stone-200 bg-[#EAEAE5]/80 backdrop-blur z-10">
                 <div className="flex items-center gap-4">
-                    <Link href="/" className="p-2 hover:bg-stone-200 rounded-full transition-colors font-medium">
+                    <Link href="/" className="p-2 hover:bg-stone-200 rounded-full transition-colors font-medium" title="Back to homepage">
                         <ArrowLeft size={20} />
                     </Link>
-                    <div className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <div className="bg-black text-white p-1.5 rounded-full">
                             <Sparkles size={16} fill="currentColor" />
                         </div>
@@ -55,7 +55,7 @@ export default function CoPilotPage() {
                             <h1 className="font-bold text-lg leading-none text-stone-900">Research Co-Pilot</h1>
                             <span className="text-xs text-stone-500 font-medium tracking-wide uppercase">Powered by Asterscholar</span>
                         </div>
-                    </div>
+                    </Link>
                 </div>
             </header>
 

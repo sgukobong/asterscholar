@@ -14,12 +14,12 @@ export default function PrivacyPage() {
             >
                 {/* Sidebar */}
                 <aside className="w-72 border-r border-stone-100 bg-[#FAF9F6] flex flex-col p-8 hidden lg:flex">
-                    <div className="flex items-center gap-2 mb-12">
+                    <Link href="/" className="flex items-center gap-2 mb-12 hover:opacity-80 transition-opacity">
                         <div className="bg-black text-white p-1 rounded-full">
                             <Sparkles size={18} fill="currentColor" />
                         </div>
                         <span className="text-xl font-bold tracking-tight">Asterscholar</span>
-                    </div>
+                    </Link>
 
                     <nav className="space-y-2 flex-1">
                         <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">The Platform</div>
@@ -44,6 +44,28 @@ export default function PrivacyPage() {
 
                 {/* content */}
                 <main className="flex-1 relative overflow-hidden bg-white flex flex-col">
+                    {/* Header for Large Screens */}
+                    <div className="hidden lg:flex p-6 border-b border-stone-100 justify-between items-center">
+                        <span className="font-bold text-stone-600">Privacy Policy</span>
+                        <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl hover:bg-stone-100">
+                            <ArrowLeft size={16} />
+                            <span className="text-sm font-medium">Home</span>
+                        </Link>
+                    </div>
+
+                    {/* Mobile Header */}
+                    <div className="flex lg:hidden p-4 border-b border-stone-100 justify-between items-center">
+                        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <div className="bg-black text-white p-1 rounded-full">
+                                <Sparkles size={18} fill="currentColor" />
+                            </div>
+                            <span className="text-lg font-bold tracking-tight">Asterscholar</span>
+                        </Link>
+                        <Link href="/" className="flex items-center gap-2 p-2 hover:bg-stone-50 rounded-lg transition-colors">
+                            <ArrowLeft size={18} />
+                        </Link>
+                    </div>
+
                     <div className="absolute inset-0 mesh-pattern pointer-events-none opacity-[0.2]" />
 
                     <div className="relative z-10 p-12 lg:p-24 overflow-y-auto flex-1">

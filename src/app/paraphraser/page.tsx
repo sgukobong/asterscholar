@@ -79,10 +79,10 @@ function ParaphraserContent() {
             {/* Header */}
             <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-stone-200 bg-white/80 backdrop-blur">
                 <div className="flex items-center gap-4">
-                    <Link href="/" className="p-2 hover:bg-stone-100 rounded-full transition-colors">
+                    <Link href="/" className="p-2 hover:bg-stone-100 rounded-full transition-colors" title="Back to homepage">
                         <ArrowLeft size={20} />
                     </Link>
-                    <div className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <div className="bg-black text-white p-1.5 rounded-full">
                             <Sparkles size={16} fill="currentColor" />
                         </div>
@@ -90,7 +90,7 @@ function ParaphraserContent() {
                             <h1 className="font-bold text-lg leading-none">Academic Paraphraser</h1>
                             <span className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Asterscholar Original</span>
                         </div>
-                    </div>
+                    </Link>
                 </div>
                 <div className="hidden md:flex items-center gap-6">
                     <Link href="/co-pilot" className="text-sm font-medium text-stone-500 hover:text-black transition-colors">Research Co-Pilot</Link>
