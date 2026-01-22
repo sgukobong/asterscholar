@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -186,7 +186,7 @@ function ReferenceFinderContent() {
                                     <h2 className="text-xl font-bold">Verification Report</h2>
                                     <p className="text-stone-400 text-sm">Processed {results.log.length} citations in your text.</p>
                                 </div>
-                                <div className="flex gap-4">
+                                <div className="flex items-center gap-4">
                                     <div className="text-center px-4 py-2 bg-white/10 rounded-xl">
                                         <div className="text-2xl font-bold">{results.log.filter(l => l.status === 'Verified').length}</div>
                                         <div className="text-[10px] uppercase font-bold text-stone-400">Verified</div>
@@ -199,11 +199,47 @@ function ReferenceFinderContent() {
                                         <div className="text-2xl font-bold text-red-500">{results.log.filter(l => l.status === 'Fabricated').length}</div>
                                         <div className="text-[10px] uppercase font-bold text-red-500">Hallucinated</div>
                                     </div>
+
+                                    {/* Export actions */}
+                                    <div className="flex items-center gap-2 ml-4">
+                                        <button
+                                            onClick={() => {
+                                                // generate a simple Markdown report and download
+                                                const md = ['# Asterscholar Verification Report', '', `Processed ${results.log.length} citations`, '', ...results.log.map((r, i) => `## ${i + 1}\n- Status: ${r.status}\n- Original: ${r.original}\n- Corrected: ${r.corrected}\n- Details: ${r.details}\n`)].join('\n');
+                                                const blob = new Blob([md], { type: 'text/markdown' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = 'asterscholar-verification.md';
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                a.remove();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            className="text-xs px-3 py-2 bg-white text-black rounded-lg font-bold hover:shadow-md transition"
+                                        >Export Report</button>
+                                        <button
+                                            onClick={() => {
+                                                // create a simple BibTeX file and download
+                                                const bib = generateBibtexFromResults(results.log);
+                                                const blob = new Blob([bib], { type: 'application/x-bibtex' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = 'asterscholar-references.bib';
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                a.remove();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            className="text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg font-bold hover:bg-white/20 transition"
+                                        >Export .bib</button>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Main Workspace */}
-                            <div className="grid lg:grid-cols-2 gap-8">
+                            <div className="grid lg:grid-cols-3 gap-8">
                                 {/* Left: Verification Log */}
                                 <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm flex flex-col">
                                     <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/50">
@@ -250,7 +286,7 @@ function ReferenceFinderContent() {
                                     </div>
                                 </div>
 
-                                {/* Right: Resulting Text */}
+                                {/* Middle: Resulting Text */}
                                 <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm flex flex-col h-[600px]">
                                     <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center">
                                         <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Corrected Manuscript</span>
@@ -261,6 +297,17 @@ function ReferenceFinderContent() {
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-8 prose prose-stone max-w-none text-stone-800 font-serif leading-relaxed text-lg">
                                         <ReactMarkdown>{results.correctedText}</ReactMarkdown>
+                                    </div>
+                                </div>
+
+                                {/* Right: Extracted References & Formatter */}
+                                <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm flex flex-col h-[600px]">
+                                    <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/50 flex items-center justify-between">
+                                        <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Extracted References</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                        {/* Render formatted references */}
+                                        <ReferencesPane results={results} />
                                     </div>
                                 </div>
                             </div>
@@ -301,3 +348,178 @@ export default function ReferenceFinderPage() {
         </Suspense>
     );
 }
+
+// ReferencesPane: renders and formats extracted references, dynamic-imports citation-js at runtime
+function ReferencesPane({ results }: { results: { correctedText: string; log: VerificationResult[] } }) {
+    const [style, setStyle] = useState<'apa' | 'mla' | 'chicago' | 'ieee'>('apa');
+    const [formatted, setFormatted] = useState<string[]>([]);
+
+    const refs = useMemo<{ title: string; authors: string; year?: number; url?: string; raw: string }[]>(() => {
+        return results.log.map((item) => {
+            if (item.paper) {
+                return {
+                    title: item.paper.title,
+                    authors: item.paper.authors || '',
+                    year: item.paper.year,
+                    url: item.paper.url,
+                    raw: item.corrected,
+                };
+            }
+            return {
+                title: item.corrected,
+                authors: '',
+                year: undefined,
+                url: undefined,
+                raw: item.corrected,
+            };
+        });
+    }, [results]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                // Attempt to dynamically import citation-js; if unavailable, fall back to plain formatting
+                const citationModule: any = await import('citation-js').catch(() => null);
+                if (!citationModule) {
+                    const out = refs.map((r) => `${r.authors ? r.authors + ' ' : ''}${r.year ? `(${r.year}) ` : ''}${r.title}${r.url ? ' ' + r.url : ''}`);
+                    if (!cancelled) setFormatted(out);
+                    return;
+                }
+
+                const CiteClass = (citationModule && (citationModule.default || citationModule)) as any;
+
+                const items = refs.map((r) => {
+                    // try to split authors into given/family
+                    const authorArr = (r.authors || '').split(/;|, and |, /).map((name: string) => {
+                        const parts = name.trim().split(' ');
+                        const family = parts.pop() || '';
+                        const given = parts.join(' ');
+                        return family ? { given, family } : null;
+                    }).filter(Boolean);
+
+                    const cs = {
+                        title: r.title,
+                        author: authorArr,
+                        issued: r.year ? { 'date-parts': [[r.year]] } : undefined,
+                        URL: r.url,
+                        DOI: r.url && r.url.includes('doi.org') ? r.url.split('doi.org/')[1] : undefined,
+                        type: 'article-journal',
+                    } as any;
+                    return cs;
+                });
+
+                try {
+                    const cite = new CiteClass(items);
+                    // Try to format bibliography using style name; citation-js templates may vary but many accept common names
+                    const bib = cite.format('bibliography', { format: 'text', template: style });
+                    let out: string[] = [];
+                    if (typeof bib === 'string') {
+                        out = bib.split(/\n\n+/).map((s: string) => s.trim()).filter(Boolean);
+                    } else if (Array.isArray(bib)) {
+                        out = bib;
+                    } else {
+                        out = items.map((r: any) => `${(r.author || []).map((a: any) => `${a.family}, ${a.given}`).join('; ')} ${r.issued ? `(${r.issued['date-parts'][0][0]}) ` : ''}${r.title} ${r.URL || ''}`);
+                    }
+
+                    if (!cancelled) setFormatted(out);
+                } catch (e) {
+                    // formatting failed — fallback to simple strings
+                    const out = refs.map((r) => `${r.authors ? r.authors + ' ' : ''}${r.year ? `(${r.year}) ` : ''}${r.title}${r.url ? ' ' + r.url : ''}`);
+                    if (!cancelled) setFormatted(out);
+                }
+            } catch (err) {
+                const out = refs.map((r) => `${r.authors ? r.authors + ' ' : ''}${r.year ? `(${r.year}) ` : ''}${r.title}${r.url ? ' ' + r.url : ''}`);
+                if (!cancelled) setFormatted(out);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [refs, style]);
+
+    const copyAll = async () => {
+        try {
+            await navigator.clipboard.writeText(formatted.join('\n\n'));
+        } catch (e) {
+            console.warn('Copy failed', e);
+        }
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold uppercase text-stone-400 mr-2">Style</label>
+                    <select value={style} onChange={(e) => setStyle(e.target.value as any)} className="text-xs p-2 rounded-lg border">
+                        <option value="apa">APA</option>
+                        <option value="mla">MLA</option>
+                        <option value="chicago">Chicago</option>
+                        <option value="ieee">IEEE</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={copyAll} className="text-xs font-bold bg-black text-white px-3 py-1.5 rounded-lg">Copy All</button>
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                {formatted.length === 0 && <div className="text-sm text-stone-400">Formatting references...</div>}
+                {formatted.map((f, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ scale: 1.01 }}
+                        transition={{ duration: 0.18 }}
+                        className="p-3 border rounded-lg bg-stone-50 flex items-start justify-between"
+                    >
+                        <div className="text-sm text-stone-800 whitespace-pre-wrap mr-4">{f}</div>
+                        <div className="flex flex-col gap-2">
+                            <CopyButton text={f} />
+                            <a href={refs[i]?.url || '#'} target="_blank" rel="noreferrer" className="text-[10px] px-2 py-1 bg-white border rounded">Open</a>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// Helper: generate a simple BibTeX string from verification results
+function generateBibtexFromResults(log: VerificationResult[]) {
+    // produce very small bibtex entries using available metadata
+    return log.map((r, i) => {
+        const key = `ref${i + 1}`;
+        const title = r.paper?.title || r.corrected || r.original || 'Untitled';
+        const authors = r.paper?.authors || '';
+        const year = r.paper?.year || '';
+        const url = r.paper?.url || '';
+        const entry = `@article{${key},\n  title = {${escapeBib(title)}},\n  author = {${escapeBib(authors)}},\n  year = {${year}},\n  url = {${url}}\n}`;
+        return entry;
+    }).join('\n\n');
+}
+
+function escapeBib(s: string) {
+    return String(s || '').replace(/([{}\\])/g, '\\$1');
+}
+
+// Small copy button component with feedback
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button
+            onClick={async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                } catch (e) {
+                    console.warn('copy failed', e);
+                }
+            }}
+            className={`text-[10px] px-2 py-1 ${copied ? 'bg-emerald-600 text-white' : 'bg-white'} border rounded`}
+        >
+            {copied ? 'Copied' : 'Copy'}
+        </button>
+    );
+}
+

@@ -20,7 +20,7 @@ export default function UpgradePage() {
         },
         {
             name: "Scholar",
-            price: "$19",
+            price: "$15",
             period: "/month",
             description: "For professional researchers and PhD candidates.",
             features: ["Unlimited Verifications", "Advanced Academic Co-Pilot", "Batch Reference Correction", "Priority API lanes", "Early access to new models"],
@@ -28,7 +28,7 @@ export default function UpgradePage() {
             button: "Go Pro",
             current: false,
             popular: true,
-            productId: "p_scholar"
+            productId: "pdt_0NWpedFEGqCX15ECA9mUQ"
         },
         {
             name: "Institution",

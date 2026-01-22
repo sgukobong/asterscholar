@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
         }
 
+        // Whitelist allowed product IDs to prevent abuse
+        const ALLOWED_PRODUCT_IDS = new Set(["pdt_0NWpedFEGqCX15ECA9mUQ"]);
+        if (!ALLOWED_PRODUCT_IDS.has(productId)) {
+            return NextResponse.json({ error: 'Invalid product_id' , details: `product_id ${productId} not allowed`}, { status: 400 });
+        }
+
         // Get user from Supabase Auth
         const cookieStore = await cookies();
         const supabase = createServerClient(
@@ -36,19 +42,35 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        try {
+            const session = await dodoClient.checkoutSessions.create({
+                product_cart: [{ product_id: productId, quantity: 1 }],
+                customer: {
+                    email: user.email!,
+                    name: (user.user_metadata as any)?.full_name || user.email!.split('@')[0],
+                },
+                return_url: 'http://localhost:3000/?upgrade=success',
+                metadata: { userId: user.id, productId },
+            });
 
-        const session = await dodoClient.checkoutSessions.create({
-            productCart: [{ productId, quantity: 1 }],
-            customer: { email: user.email! },
-            returnUrl: 'http://localhost:3000/?upgrade=success',
-            metadata: { userId: user.id },
-        });
+            // dodo response shape may use checkoutUrl or checkout_url (or other keys).
+            const checkoutUrl = (session as any).checkoutUrl || (session as any).checkout_url || (session as any).url || null;
 
-        return NextResponse.json({ checkout_url: session.checkoutUrl });
+            if (!checkoutUrl) {
+                console.error('Dodo checkout session created but no checkout URL returned', { session });
+                return NextResponse.json({ error: 'No checkout URL returned by payment provider', details: session }, { status: 502 });
+            }
+
+            return NextResponse.json({ checkout_url: checkoutUrl });
+        } catch (err: any) {
+            console.error('Dodo SDK error creating checkout session:', err);
+            // Return more detailed error to the client to help debugging in dev.
+            return NextResponse.json({ error: 'Failed to create checkout session', details: err?.message || String(err) }, { status: 500 });
+        }
     } catch (error: any) {
         console.error('Checkout error:', error);
         return NextResponse.json(
-            { error: 'Failed to create checkout session' },
+            { error: 'Failed to create checkout session', details: error?.message || String(error) },
             { status: 500 }
         );
     }
