@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useCompletion } from '@ai-sdk/react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,6 +24,9 @@ function ParaphraserContent() {
     const [preserveCitations, setPreserveCitations] = useState(true);
     const [length, setLength] = useState('Similar');
     const [copied, setCopied] = useState(false);
+    const [completion, setCompletion] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     // History state
     const [history, setHistory] = useState<{ original: string, paraphrased: string, date: Date }[]>([]);
@@ -36,27 +38,78 @@ function ParaphraserContent() {
         }
     }, [searchParams]);
 
-    const { complete, completion, isLoading } = useCompletion({
-        api: '/api/paraphrase',
-        body: {
-            strength,
-            tone,
-            preserveCitations,
-            length
-        },
-        onFinish: (prompt, completion) => {
-            setHistory(prev => [{
-                original: prompt,
-                paraphrased: completion,
-                date: new Date()
-            }, ...prev]);
-        }
-    });
-
     const handleParaphrase = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputText.trim() || isLoading) return;
-        complete(inputText);
+        
+        setIsLoading(true);
+        setError('');
+        setCompletion('');
+        
+        try {
+            console.log('Starting paraphrase request...');
+            const response = await fetch('/api/paraphrase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: inputText,
+                    strength,
+                    tone,
+                    preserveCitations,
+                    length
+                }),
+            });
+
+            console.log('Response status:', response.status, response.ok);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(`API error: ${response.status} - ${errorText}`);
+            }
+
+            // Handle streaming response
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let fullText = '';
+
+            console.log('Starting to read stream...');
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    console.log('Stream complete. Total length:', fullText.length);
+                    break;
+                }
+
+                const chunk = decoder.decode(value, { stream: true });
+                console.log('Received chunk:', chunk.length, 'chars');
+                fullText += chunk;
+                setCompletion(fullText);
+            }
+
+            console.log('Final completion:', fullText.substring(0, 100) + '...');
+
+            // Add to history
+            if (fullText) {
+                setHistory(prev => [{
+                    original: inputText,
+                    paraphrased: fullText,
+                    date: new Date()
+                }, ...prev]);
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error occurred';
+            setError(message);
+            console.error('Paraphrase error:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleCopy = () => {
@@ -199,6 +252,11 @@ function ParaphraserContent() {
                             </div>
                         </div>
                         <div className="flex-1 p-8 overflow-y-auto">
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                    <p className="text-red-800 text-sm font-medium">Error: {error}</p>
+                                </div>
+                            )}
                             {!completion && !isLoading && (
                                 <div className="h-full flex flex-col items-center justify-center text-stone-300 gap-4">
                                     <Sparkles size={48} className="opacity-20" />

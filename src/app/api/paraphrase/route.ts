@@ -1,22 +1,26 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-    const {
-        prompt: text,
-        strength = 'Medium',
-        tone = 'Academic',
-        preserveCitations = true,
-        length = 'Similar'
-    } = await req.json();
+    try {
+        const body = await req.json();
+        
+        const text = body.prompt || '';
+        const strength = body.strength || 'Medium';
+        const tone = body.tone || 'Academic';
+        const preserveCitations = body.preserveCitations !== false;
+        const length = body.length || 'Similar';
 
-    if (!text) {
-        return new Response('Missing text', { status: 400 });
-    }
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+            return new Response('Missing text', { 
+                status: 400,
+                headers: { 'Content-Type': 'text/plain' }
+            });
+        }
 
-    const systemPrompt = `You are an expert academic paraphraser for Asterscholar. 
+        const systemPrompt = `You are an expert academic paraphraser for Asterscholar. 
 Rewrite ONLY the provided input text. 
 Preserve EXACT meaning, facts, technical terms, and structure where possible. 
 Do NOT add, remove, invent, or alter any information, claims, data, or conclusions. 
@@ -48,11 +52,57 @@ CRITICAL RULES:
 Always include this footer on a new line:
 "--- \n*AI-generated paraphrase — review for accuracy, originality, and proper citation. Use responsibly to support your writing, not replace it.*"`;
 
-    const result = streamText({
-        model: openai('gpt-4o'),
-        system: systemPrompt,
-        prompt: text,
-    });
+        try {
+            console.log('Calling generateText with gemini-2.0-flash...');
+            const result = await generateText({
+                model: google('gemini-2.0-flash'),
+                system: systemPrompt,
+                prompt: text,
+            });
 
-    return result.toTextStreamResponse();
+            console.log('Generated text length:', result.text.length);
+            
+            // Return as text stream response
+            return new Response(result.text, {
+                status: 200,
+                headers: { 
+                    'Content-Type': 'text/plain',
+                    'Transfer-Encoding': 'chunked'
+                }
+            });
+        } catch (error: any) {
+            console.error('gemini-2.0-flash error:', error?.message);
+            // Fallback to gemini-1.5-flash if gemini-2.0-flash is not available
+            if (error?.message?.includes('model not found') || error?.status === 404) {
+                console.log('Falling back to gemini-1.5-flash');
+                const result = await generateText({
+                    model: google('gemini-1.5-flash'),
+                    system: systemPrompt,
+                    prompt: text,
+                });
+                
+                console.log('Fallback generated text length:', result.text.length);
+                
+                return new Response(result.text, {
+                    status: 200,
+                    headers: { 
+                        'Content-Type': 'text/plain',
+                        'Transfer-Encoding': 'chunked'
+                    }
+                });
+            }
+            throw error;
+        }
+    } catch (error) {
+        console.error('Paraphrase API error:', error);
+        return new Response(
+            JSON.stringify({ 
+                error: error instanceof Error ? error.message : 'Unknown error' 
+            }),
+            { 
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
+    }
 }
