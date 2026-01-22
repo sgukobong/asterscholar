@@ -13,7 +13,7 @@
     "@ai-sdk/openai": "^3.0.12",
     "@ai-sdk/react": "^3.0.43",
     "@supabase/supabase-js": "^2.39.3",
-    "@supabase/ssr": "^0.1.0",
+    "@supabase/ssr": "^0.8.0",
     "ai": "^6.0.41",
     "citation-js": "^0.7.22",
     "clsx": "^2.1.1",
