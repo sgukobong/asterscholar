@@ -21,27 +21,31 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: profileError.message }, { status: 500 });
         }
 
-        // Update and get activity summary
-        await supabase.rpc('update_activity_summary', { user_uuid: userId });
-        
-        const { data: activity, error: activityError } = await supabase
-            .from('user_activity_summary')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        // Get basic activity data from existing tables
+        const { data: searchCount } = await supabase
+            .from('search_history')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userId);
+
+        const { data: savedPapersCount } = await supabase
+            .from('saved_papers')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userId);
+
+        const activity = {
+            total_searches: searchCount?.length || 0,
+            total_papers_saved: savedPapersCount?.length || 0,
+            total_chat_sessions: 0,
+            total_paraphrases: 0,
+            current_month_searches: 0,
+            current_month_papers_saved: 0,
+            current_month_chat_sessions: 0,
+            current_month_paraphrases: 0,
+        };
 
         return NextResponse.json({
             profile,
-            activity: activity || {
-                total_searches: 0,
-                total_papers_saved: 0,
-                total_chat_sessions: 0,
-                total_paraphrases: 0,
-                current_month_searches: 0,
-                current_month_papers_saved: 0,
-                current_month_chat_sessions: 0,
-                current_month_paraphrases: 0,
-            }
+            activity
         });
     } catch (error) {
         console.error('Profile API error:', error);
