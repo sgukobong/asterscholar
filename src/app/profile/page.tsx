@@ -31,7 +31,7 @@ interface ActivitySummary {
 }
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, updateUserProfile } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [activity, setActivity] = useState<ActivitySummary | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -49,23 +49,30 @@ export default function ProfilePage() {
     const loadProfile = async () => {
         try {
             setError(null);
-            // Use auth user data as fallback since users table may not exist
-            if (user) {
-                setProfile({
-                    id: user.uid,
-                    email: user.email,
-                    display_name: user.displayName,
-                    avatar_url: null,
-                    bio: null,
-                    institution: null,
-                    research_interests: null,
-                    subscription_tier: user.subscriptionTier,
-                    created_at: new Date().toISOString()
-                });
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user?.uid)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                throw error;
             }
+
+            setProfile(data || {
+                id: user!.uid,
+                email: user!.email,
+                display_name: user!.displayName,
+                avatar_url: null,
+                bio: null,
+                institution: null,
+                research_interests: null,
+                subscription_tier: user!.subscriptionTier,
+                created_at: new Date().toISOString()
+            });
         } catch (error: any) {
-            console.warn('Profile loading fallback to auth data:', error);
-            setError('Using basic profile information.');
+            console.error('Error loading profile:', error);
+            setError('Failed to load profile data.');
         }
     };
 
@@ -94,16 +101,11 @@ export default function ProfilePage() {
             setUpdateLoading(true);
             setError(null);
             
-            const { error } = await supabase
-                .from('users')
-                .update(updates)
-                .eq('id', user?.uid);
-
-            if (error) throw error;
+            await updateUserProfile(updates);
             setProfile(prev => prev ? { ...prev, ...updates } : null);
             setIsEditing(false);
         } catch (error: any) {
-            console.error('Error updating profile:', error);
+            console.error('Error updating profile:', error?.message || error);
             setError('Failed to update profile. Please try again.');
         } finally {
             setUpdateLoading(false);
@@ -192,7 +194,7 @@ export default function ProfilePage() {
                             <ResearchInterests
                                 isEditing={isEditing}
                                 interests={profile?.research_interests || []}
-                                onUpdate={(interests) => updateProfile({ research_interests: interests })}
+                                onUpdate={updateProfile}
                             />
                         </div>
 
@@ -316,13 +318,13 @@ function ResearchInterests({ isEditing, interests, onUpdate }: any) {
     const addInterest = () => {
         const trimmed = newInterest.trim();
         if (trimmed && !interests.includes(trimmed) && trimmed.length <= 50) {
-            onUpdate([...interests, trimmed]);
+            onUpdate({ research_interests: [...interests, trimmed] });
             setNewInterest('');
         }
     };
 
     const removeInterest = (interest: string) => {
-        onUpdate(interests.filter((i: string) => i !== interest));
+        onUpdate({ research_interests: interests.filter((i: string) => i !== interest) });
     };
 
     const escapeHtml = (text: string) => {

@@ -1,8 +1,8 @@
--- Migration: Create users table and add missing columns
+-- Complete Migration with RLS Policies
 -- Run this in Supabase SQL Editor
 
--- Create users table if it doesn't exist
-CREATE TABLE IF NOT EXISTS users (
+-- Create profiles table (avoiding conflict with existing users table)
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT NOT NULL UNIQUE,
     display_name TEXT,
@@ -17,48 +17,27 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add missing columns to existing users table (if table already exists)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS institution TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS research_interests TEXT[];
-ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}';
-ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier TEXT DEFAULT 'free';
-ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- Enable RLS on profiles table
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Add constraint for subscription_tier if it doesn't exist
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.check_constraints 
-        WHERE constraint_name = 'users_subscription_tier_check'
-    ) THEN
-        ALTER TABLE users ADD CONSTRAINT users_subscription_tier_check 
-        CHECK (subscription_tier IN ('free', 'premium', 'pro'));
-    END IF;
-END $$;
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Create RLS policies for profiles table
+CREATE POLICY "Users can view own profile" ON profiles
+    FOR SELECT USING (auth.uid() = id);
 
--- Create trigger to automatically update updated_at
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+CREATE POLICY "Users can insert own profile" ON profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Create missing tables
+CREATE POLICY "Users can update own profile" ON profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Create user_activity_summary table
 CREATE TABLE IF NOT EXISTS user_activity_summary (
-    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
     total_searches INTEGER DEFAULT 0,
     total_papers_saved INTEGER DEFAULT 0,
     total_chat_sessions INTEGER DEFAULT 0,
@@ -70,18 +49,36 @@ CREATE TABLE IF NOT EXISTS user_activity_summary (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Enable RLS on user_activity_summary table
+ALTER TABLE user_activity_summary ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for user_activity_summary table
+CREATE POLICY "Users can view own activity" ON user_activity_summary
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own activity" ON user_activity_summary
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own activity" ON user_activity_summary
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create other tables with RLS
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own projects" ON projects
+    FOR ALL USING (auth.uid() = user_id);
+
 CREATE TABLE IF NOT EXISTS saved_papers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
     paper_id TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -97,14 +94,22 @@ CREATE TABLE IF NOT EXISTS saved_papers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE saved_papers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own saved papers" ON saved_papers
+    FOR ALL USING (auth.uid() = user_id);
+
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
     title TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own chat sessions" ON chat_sessions
+    FOR ALL USING (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS chat_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -115,20 +120,33 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own chat messages" ON chat_messages
+    FOR ALL USING (auth.uid() IN (SELECT user_id FROM chat_sessions WHERE id = session_id));
+
 CREATE TABLE IF NOT EXISTS search_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     query TEXT NOT NULL,
     results_count INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create function
+ALTER TABLE search_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own search history" ON search_history
+    FOR ALL USING (auth.uid() = user_id);
+
+-- Create function with proper security
 CREATE OR REPLACE FUNCTION update_activity_summary(user_uuid UUID)
 RETURNS VOID AS $$
 DECLARE
     current_month_start DATE := DATE_TRUNC('month', CURRENT_DATE);
 BEGIN
+    -- Only allow users to update their own activity
+    IF auth.uid() != user_uuid THEN
+        RAISE EXCEPTION 'Access denied';
+    END IF;
+    
     INSERT INTO user_activity_summary (user_id) VALUES (user_uuid)
     ON CONFLICT (user_id) DO NOTHING;
     

@@ -19,6 +19,7 @@ interface AuthContextType {
     signup: (email: string, password: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
+    updateUserProfile: (updates: { display_name?: string; bio?: string; institution?: string; research_interests?: string[] }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -81,7 +82,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (error && error.code !== 'PGRST116') {
                 // PGRST116 = no rows returned, which is fine for new users
-                // Handle missing table or other database errors gracefully
                 console.warn('User profile table may not exist:', error.message);
             }
 
@@ -102,6 +102,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const updateUserProfile = async (updates: { display_name?: string; bio?: string; institution?: string; research_interests?: string[] }) => {
+        if (!user) return;
+        
+        try {
+            const { error } = await supabase
+                .from('users')
+                .upsert({
+                    id: user.uid,
+                    email: user.email,
+                    ...updates,
+                }, {
+                    onConflict: 'id'
+                });
+
+            if (error) throw error;
+            
+            // Update local user state if display_name was changed
+            if (updates.display_name !== undefined) {
+                setUser(prev => prev ? { ...prev, displayName: updates.display_name || null } : null);
+            }
+        } catch (error) {
+            console.error('Error updating user profile:', error instanceof Error ? error.message : String(error));
+            throw error;
         }
     };
 
@@ -166,7 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, logout, updateUserProfile }}>
             {children}
         </AuthContext.Provider>
     );

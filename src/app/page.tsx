@@ -6,9 +6,11 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -19,7 +21,6 @@ export default function Home() {
 
   return (
     <div className="p-4 md:p-8 lg:p-12 w-full h-screen flex items-center justify-center bg-[#EAE8E2]">
-      <Navigation />
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,11 +82,24 @@ export default function Home() {
 
         {/* Main Content Area (Right) */}
         <main className="flex-1 relative overflow-hidden bg-white flex flex-col items-center justify-center p-8">
-          {/* Top Bar inside Mockup */}
-          <div className="absolute top-0 right-0 p-8 flex items-center gap-4">
-            <Link href="/login" className="text-sm font-bold text-stone-500 hover:text-black px-4 py-2 border border-stone-200 rounded-full transition-all bg-white hover:bg-stone-50">Log in</Link>
-            <Link href="/login" className="text-sm font-bold text-white px-4 py-2 bg-black rounded-full shadow-lg shadow-black/10 hover:shadow-black/20 transition-all">Sign up</Link>
-          </div>
+          {/* Top Bar inside Mockup - Show login buttons when not logged in, user menu when logged in */}
+          {!user ? (
+            <div className="absolute top-0 right-0 p-8 flex items-center gap-4">
+              <Link href="/login" className="text-sm font-bold text-stone-500 hover:text-black px-4 py-2 border border-stone-200 rounded-full transition-all bg-white hover:bg-stone-50">Log in</Link>
+              <Link href="/login" className="text-sm font-bold text-white px-4 py-2 bg-black rounded-full shadow-lg shadow-black/10 hover:shadow-black/20 transition-all">Sign up</Link>
+            </div>
+          ) : (
+            <div className="absolute top-0 right-0 p-8 flex items-center gap-4">
+              <Link href="/profile" className="flex items-center gap-2 px-4 py-2 bg-white/95 backdrop-blur-sm border border-stone-200 rounded-full hover:bg-stone-50 transition-all shadow-sm">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  {user.displayName ? user.displayName.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2) : user.email[0].toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-stone-700 hidden sm:block">
+                  {user.displayName || user.email.split('@')[0]}
+                </span>
+              </Link>
+            </div>
+          )}
 
           {/* Decorative Mesh Background */}
           <div className="absolute inset-0 mesh-pattern pointer-events-none opacity-[0.2]" />
