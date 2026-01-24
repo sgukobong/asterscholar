@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
 const ALLOWED_FIELDS = ['display_name', 'bio', 'institution', 'research_interests'];
 const MAX_LENGTHS = { display_name: 100, bio: 500, institution: 200 };
 
-function validateUpdates(updates: any) {
-    const sanitized: any = {};
+function validateUpdates(updates: any): Record<string, any> {
+    const sanitized: Record<string, any> = {};
     
     for (const [key, value] of Object.entries(updates)) {
         if (!ALLOWED_FIELDS.includes(key)) continue;
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
         
         const { data, error } = await supabase
             .from('users')
-            .update(sanitizedUpdates)
+            .update(sanitizedUpdates as any)
             .eq('id', userId)
             .select()
             .single();
