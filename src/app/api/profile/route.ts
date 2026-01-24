@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
     }
 }
 
-const ALLOWED_FIELDS = ['display_name', 'bio', 'institution', 'research_interests'];
-const MAX_LENGTHS = { display_name: 100, bio: 500, institution: 200 };
+const ALLOWED_FIELDS = ['display_name'];
+const MAX_LENGTHS = { display_name: 100 };
 
 function validateUpdates(updates: any): Record<string, any> {
     const sanitized: Record<string, any> = {};
@@ -69,8 +69,6 @@ function validateUpdates(updates: any): Record<string, any> {
                 throw new Error(`${key} exceeds maximum length of ${maxLen}`);
             }
             sanitized[key] = trimmed;
-        } else if (key === 'research_interests' && Array.isArray(value)) {
-            sanitized[key] = value.filter(i => typeof i === 'string' && i.trim()).slice(0, 10);
         }
     }
     
@@ -87,9 +85,13 @@ export async function PUT(request: NextRequest) {
 
         const sanitizedUpdates = validateUpdates(updates);
         
+        if (Object.keys(sanitizedUpdates).length === 0) {
+            return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+        }
+        
         const { data, error } = await supabase
             .from('users')
-            .update(sanitizedUpdates as any)
+            .update({ display_name: sanitizedUpdates.display_name })
             .eq('id', userId)
             .select()
             .single();
