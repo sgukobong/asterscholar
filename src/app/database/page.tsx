@@ -174,7 +174,8 @@ export default function DatabasePage() {
                                         key={paper.paperId}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="bg-white p-6 rounded-2xl border border-stone-100 hover:border-black/10 hover:shadow-lg transition-all group"
+                                        onClick={() => setSelectedPaper(paper)}
+                                        className="bg-white p-6 rounded-2xl border border-stone-100 hover:border-black/10 hover:shadow-lg transition-all group cursor-pointer"
                                     >
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex-1">
@@ -205,16 +206,12 @@ export default function DatabasePage() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {paper.url && (
-                                                    <Link
-                                                        href={paper.url}
-                                                        target="_blank"
-                                                        className="p-2 bg-stone-100 hover:bg-black hover:text-white rounded-xl transition-colors"
-                                                        title="View Source"
-                                                    >
-                                                        <ExternalLink size={18} />
-                                                    </Link>
-                                                )}
+                                                <button
+                                                    className="p-2 bg-stone-100 hover:bg-black hover:text-white rounded-xl transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <ArrowRight size={18} />
+                                                </button>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -228,6 +225,11 @@ export default function DatabasePage() {
                     )}
                 </div>
             </div>
+
+            <PaperDetailModal
+                paper={selectedPaper}
+                onClose={() => setSelectedPaper(null)}
+            />
         </div>
     );
 }
