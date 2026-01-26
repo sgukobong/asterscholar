@@ -61,7 +61,7 @@ export default function Navigation() {
                     <Home size={16} />
                     <span className="text-sm hidden sm:block">Home</span>
                 </Link>
-                
+
                 {/* User Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                     <button
@@ -74,11 +74,10 @@ export default function Navigation() {
                         <span className="text-sm font-medium hidden sm:block text-stone-700">
                             {getDisplayName()}
                         </span>
-                        <ChevronDown 
-                            size={14} 
-                            className={`text-stone-400 transition-transform hidden sm:block ${
-                                isDropdownOpen ? 'rotate-180' : ''
-                            }`} 
+                        <ChevronDown
+                            size={14}
+                            className={`text-stone-400 transition-transform hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''
+                                }`}
                         />
                     </button>
 
@@ -97,10 +96,9 @@ export default function Navigation() {
                                         </p>
                                         <p className="text-xs text-stone-500 truncate">{user.email}</p>
                                         <div className="flex items-center gap-1 mt-1">
-                                            <div className={`w-2 h-2 rounded-full ${
-                                                user.subscriptionTier === 'premium' ? 'bg-yellow-400' : 
-                                                user.subscriptionTier === 'pro' ? 'bg-purple-400' : 'bg-gray-400'
-                                            }`} />
+                                            <div className={`w-2 h-2 rounded-full ${user.subscriptionTier === 'institution' ? 'bg-yellow-400' :
+                                                    user.subscriptionTier === 'scholar' ? 'bg-purple-400' : 'bg-gray-400'
+                                                }`} />
                                             <span className="text-xs text-stone-500 capitalize">
                                                 {user.subscriptionTier} Plan
                                             </span>
@@ -119,7 +117,7 @@ export default function Navigation() {
                                     <User size={16} className="text-stone-400" />
                                     Profile Settings
                                 </Link>
-                                
+
                                 <Link
                                     href="/upgrade"
                                     className="flex items-center gap-3 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
