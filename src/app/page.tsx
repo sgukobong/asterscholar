@@ -70,12 +70,20 @@ export default function Home() {
 
             <section>
               <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">Database</div>
-              <div className="space-y-3 px-3">
-                <div className="flex items-center gap-2 text-xs text-stone-500">
-                  <Database size={14} />
-                  <span>200M+ Academic Papers</span>
+              <Link href="/database" className="block px-3 group">
+                <div className="flex items-center gap-3 p-3 -mx-3 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-stone-100 transition-all cursor-pointer">
+                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:bg-black group-hover:text-white transition-colors">
+                    <Database size={14} />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold tracking-tight text-stone-900 leading-none mb-1">213M+</div>
+                    <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider group-hover:text-stone-600 transition-colors">Academic Papers</div>
+                  </div>
+                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Live Indexing" />
+                  </div>
                 </div>
-              </div>
+              </Link>
             </section>
           </div>
 
