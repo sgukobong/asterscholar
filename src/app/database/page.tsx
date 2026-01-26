@@ -7,17 +7,7 @@ import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 import PaperDetailModal from '@/components/database/PaperDetailModal';
 
-interface Paper {
-    paperId: string;
-    title: string;
-    abstract?: string;
-    venue?: string;
-    year?: number;
-    citationCount?: number;
-    authors: { name: string }[];
-    url?: string;
-    isOpenAccess?: boolean;
-}
+import { Paper } from '@/types';
 
 export default function DatabasePage() {
     const [query, setQuery] = useState('');
