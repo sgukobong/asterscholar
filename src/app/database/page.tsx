@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Database, Globe, BookOpen, Layers, ArrowRight, ExternalLink, Loader2, Sparkles, Filter, FileText } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
+import PaperDetailModal from '@/components/database/PaperDetailModal';
 
 interface Paper {
     paperId: string;
@@ -23,6 +24,7 @@ export default function DatabasePage() {
     const [results, setResults] = useState<Paper[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
+    const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
     const [stats, setStats] = useState({ papers: 213405921, sources: 45000 });
 
     // Simulate live index counter
