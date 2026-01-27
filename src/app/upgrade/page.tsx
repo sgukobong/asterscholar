@@ -5,6 +5,8 @@ import { Sparkles, Check, Zap, Crown, Building2, ArrowLeft, Search, MessageSquar
 import Link from 'next/link';
 import { useState } from 'react';
 
+import Navigation from '@/components/Navigation';
+
 export default function UpgradePage() {
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const tiers = [
@@ -61,7 +63,8 @@ export default function UpgradePage() {
     };
 
     return (
-        <div className="p-8 md:p-12 w-full h-screen flex items-center justify-center bg-[#EAE8E2]">
+        <div className="p-8 pt-24 md:p-12 w-full h-screen flex items-center justify-center bg-[#EAE8E2]">
+            <Navigation />
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
