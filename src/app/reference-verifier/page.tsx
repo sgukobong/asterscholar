@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Sparkles, AlertCircle, CheckCircle, ArrowRight, RefreshCw, FileText, Search } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, CheckCircle, ArrowRight, RefreshCw, FileText, Search, ArrowLeft } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import ReactMarkdown from 'react-markdown';
@@ -14,7 +14,7 @@ export default function ReferenceVerifier() {
     const [inputText, setInputText] = useState('');
     const [started, setStarted] = useState(false);
 
-    const { messages, append, status, setMessages } = useChat({
+    const { messages, sendMessage, status } = useChat({
         api: '/api/verify-references',
         initialMessages: [],
     } as any) as any;
@@ -25,12 +25,9 @@ export default function ReferenceVerifier() {
         if (!inputText.trim()) return;
 
         setStarted(true);
-        setMessages([]); // Clear previous results
 
-        await append({
-            role: 'user',
-            content: inputText
-        });
+        sendMessage({ text: inputText });
+        setInputText('');
     };
 
     const latestMessage = messages.length > 0 ? (messages[messages.length - 1] as any) : null;
@@ -40,6 +37,14 @@ export default function ReferenceVerifier() {
             <Navigation />
 
             <div className="pt-20 pb-8 px-4 md:px-8 lg:px-12 w-full">
+                {/* Back Button */}
+                <div className="mb-6">
+                    <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-stone-200">
+                        <ArrowLeft size={18} />
+                        <span className="font-medium">Back to Home</span>
+                    </Link>
+                </div>
+
                 {/* Mobile Logo */}
                 <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
                     <div className="bg-black text-white p-1 rounded-full">
