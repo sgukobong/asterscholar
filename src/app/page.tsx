@@ -99,8 +99,19 @@ export default function Home() {
 
           {/* Main Content Area (Right) */}
           <main className="flex-1 relative overflow-hidden bg-white flex flex-col items-center justify-center p-8">
+            {/* Mobile Logo - Top Left */}
+            <div className="lg:hidden absolute top-0 left-0 p-4 md:p-8 z-30">
+              <div className="flex items-center gap-2 bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-stone-200/50 shadow-sm">
+                <div className="bg-black text-white p-1 rounded-full">
+                  <Sparkles size={14} fill="currentColor" />
+                </div>
+                <span className="text-sm font-bold tracking-tight text-stone-900">Asterscholar</span>
+              </div>
+            </div>
+
             {/* Top Bar inside Mockup - Show login buttons when not logged in, user menu when logged in */}
             <div className="absolute top-0 right-0 p-4 md:p-8 flex items-center gap-3 z-30">
+              {/* Mobile Logo - Moved to separate container below */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden p-2 bg-white/95 backdrop-blur-sm border border-stone-200 rounded-full hover:bg-stone-50 transition-all shadow-sm text-stone-700"
@@ -163,22 +174,23 @@ export default function Home() {
 
               <form onSubmit={handleSearch} className="w-full relative group">
                 <div className="relative flex items-center bg-white border border-stone-200 rounded-full p-2 shadow-xl shadow-stone-200/40 focus-within:ring-4 focus-within:ring-black/5 transition-all">
-                  <div className="pl-4 text-stone-400">
+                  <div className="pl-3 md:pl-4 text-stone-400 flex-shrink-0">
                     <Search size={22} strokeWidth={2.5} />
                   </div>
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search topics, authors, or concepts..."
-                    className="flex-1 bg-transparent px-4 py-3 text-lg outline-none placeholder:text-stone-300 font-medium"
+                    placeholder="Search topics..."
+                    className="flex-1 bg-transparent px-3 md:px-4 py-2 md:py-3 text-base md:text-lg outline-none placeholder:text-stone-300 font-medium min-w-0"
                   />
                   <button
                     type="submit"
-                    className="flex items-center gap-2 bg-[#E5E3DC] text-stone-700 px-6 py-3 rounded-full font-bold text-sm hover:bg-black hover:text-white transition-all group"
+                    className="flex-shrink-0 flex items-center gap-2 bg-[#E5E3DC] text-stone-700 px-4 md:px-6 py-2 md:py-3 rounded-full font-bold text-xs md:text-sm hover:bg-black hover:text-white transition-all group whitespace-nowrap"
                   >
                     <Sparkles size={16} />
-                    Find References
+                    <span className="hidden sm:inline">Find References</span>
+                    <span className="sm:hidden">Find</span>
                   </button>
                 </div>
               </form>
