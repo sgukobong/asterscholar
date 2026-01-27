@@ -4,10 +4,14 @@ import { motion } from 'framer-motion';
 import { Sparkles, Check, Zap, Crown, Building2, ArrowLeft, Search, MessageSquare, ShieldCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthContext';
 
 import Navigation from '@/components/Navigation';
 
 export default function UpgradePage() {
+    const router = useRouter();
+    const { user } = useAuth();
     const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
     const tiers = [
         {
@@ -45,19 +49,33 @@ export default function UpgradePage() {
     ];
 
     const handleUpgrade = async (productId: string, planName: string) => {
+        // Check if user is authenticated
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
         setLoadingPlan(planName);
         try {
             const res = await fetch(`/api/payments/checkout?product_id=${productId}`, {
                 method: 'POST'
             });
-            if (!res.ok) throw new Error("Failed to create checkout");
-            const { checkout_url } = await res.json();
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data?.details || data?.error || "Failed to create checkout");
+            }
+            
+            const { checkout_url } = data;
+            if (!checkout_url) {
+                throw new Error("No checkout URL returned from server");
+            }
 
             // Redirect to Dodo Payments checkout page
             window.location.href = checkout_url;
         } catch (error) {
             console.error("Upgrade error:", error);
-            alert("Upgrade failed. Please try again.");
+            alert(`Upgrade failed: ${error instanceof Error ? error.message : 'Please try again.'}`);
             setLoadingPlan(null);
         }
     };
@@ -80,7 +98,12 @@ export default function UpgradePage() {
                     </Link>
 
                     <nav className="space-y-2 flex-1">
-                        <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">Account</div>
+                        <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4">Navigation</div>
+                        <Link href="/" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all text-stone-600 hover:text-black group">
+                            <ArrowLeft size={18} className="text-stone-400 group-hover:text-black" />
+                            <span className="font-medium">Back to Home</span>
+                        </Link>
+                        <div className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] mb-4 mt-6">Account</div>
                         <Link href="/" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all text-stone-600 hover:text-black group">
                             <Search size={18} className="text-stone-400 group-hover:text-black" />
                             <span className="font-medium">Search Library</span>

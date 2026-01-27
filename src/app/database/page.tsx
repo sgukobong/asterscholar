@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Database, Globe, BookOpen, Layers, ArrowRight, ExternalLink, Loader2, Sparkles, Filter, FileText } from 'lucide-react';
+import { Search, Database, Globe, BookOpen, Layers, ArrowRight, ExternalLink, Loader2, Sparkles, Filter, FileText, ArrowLeft } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 import PaperDetailModal from '@/components/database/PaperDetailModal';
@@ -49,6 +49,14 @@ export default function DatabasePage() {
             <Navigation />
 
             <div className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
+                {/* Return Button */}
+                <div className="mb-8">
+                    <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-black hover:bg-white rounded-lg transition-colors border border-transparent hover:border-stone-200">
+                        <ArrowLeft size={18} />
+                        <span className="font-medium">Back to Home</span>
+                    </Link>
+                </div>
+
                 {/* Hero Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
