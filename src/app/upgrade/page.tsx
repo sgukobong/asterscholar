@@ -58,7 +58,8 @@ export default function UpgradePage() {
         setLoadingPlan(planName);
         try {
             const res = await fetch(`/api/payments/checkout?product_id=${productId}`, {
-                method: 'POST'
+                method: 'POST',
+                credentials: 'include'
             });
             const data = await res.json();
             
