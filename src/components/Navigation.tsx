@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthContext';
-import { User, LogOut, Home, Settings, CreditCard, ChevronDown } from 'lucide-react';
+import { User, LogOut, Home, Settings, CreditCard, ChevronDown, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Navigation() {
@@ -45,8 +45,8 @@ export default function Navigation() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 title="Back to homepage"
             >
-                <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    AS
+                <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white">
+                    <Sparkles size={18} fill="currentColor" />
                 </div>
                 <span className="font-bold text-stone-900 hidden sm:block">Asterscholar</span>
             </Link>

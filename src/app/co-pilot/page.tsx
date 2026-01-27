@@ -85,12 +85,21 @@ export default function CoPilotPage() {
                         </div>
                     </div>
 
-                    <div>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4">Tips</h3>
+                    <div className="bg-white rounded-2xl p-4 border border-stone-100 shadow-sm">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-600 mb-4">Quick Tips</h3>
                         <ul className="text-[10px] text-stone-600 space-y-3">
-                            <li>• Ask for a **Literature Review** to generate structured drafts.</li>
-                            <li>• Use **"Make it shorter"** to refine the latest output.</li>
-                            <li>• Mention specific DOI's and topics for better grounding.</li>
+                            <li className="flex gap-2">
+                                <span className="text-blue-500 font-bold min-w-4">💡</span>
+                                <span>Ask for a Literature Review to generate structured drafts.</span>
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-green-500 font-bold min-w-4">✏️</span>
+                                <span>Use Make it shorter to refine the latest output.</span>
+                            </li>
+                            <li className="flex gap-2">
+                                <span className="text-purple-500 font-bold min-w-4">🎯</span>
+                                <span>Mention specific DOIs and topics for better grounding.</span>
+                            </li>
                         </ul>
                     </div>
                 </aside>
@@ -99,13 +108,13 @@ export default function CoPilotPage() {
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative">
                     <div className="max-w-3xl mx-auto space-y-6 pb-32">
                         {messages.length === 0 && (
-                            <div className="text-center py-20 px-4 text-stone-900">
+                            <div className="text-center py-16 px-4 text-stone-900">
                                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                                    <h2 className="text-4xl font-bold mb-4 tracking-tight">Make a Draft.</h2>
-                                    <p className="text-stone-500 max-w-md mx-auto mb-12 text-lg leading-relaxed">
+                                    <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">Make a Draft.</h2>
+                                    <p className="text-stone-500 max-w-md mx-auto mb-10 text-base leading-relaxed">
                                         Generate verifiable literature reviews, outlines, and summaries grounded in real research.
                                     </p>
-                                    <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+                                    <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto text-left">
                                         {[
                                             "Draft a literature review on solar cell efficiency",
                                             "Create a comparison table of LLM architectures",
@@ -117,7 +126,7 @@ export default function CoPilotPage() {
                                                 onClick={() => {
                                                     setInput(q);
                                                 }}
-                                                className="p-5 bg-white rounded-xl border border-stone-200 hover:border-black hover:shadow-lg transition-all text-sm font-semibold text-stone-800 shadow-sm"
+                                                className="p-4 bg-white rounded-xl border border-stone-200 hover:border-black hover:shadow-md transition-all text-xs font-semibold text-stone-800 shadow-sm"
                                             >
                                                 {q}
                                             </button>

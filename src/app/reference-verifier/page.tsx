@@ -7,6 +7,7 @@ import { ShieldCheck, Sparkles, AlertCircle, CheckCircle, ArrowRight, RefreshCw,
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import ReactMarkdown from 'react-markdown';
+import Link from 'next/link';
 
 export default function ReferenceVerifier() {
     const { user } = useAuth();
@@ -38,36 +39,44 @@ export default function ReferenceVerifier() {
         <div className="min-h-screen bg-[#EAE8E2] text-stone-900 font-sans selection:bg-black/10">
             <Navigation />
 
-            <div className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
+            <div className="pt-20 pb-8 px-4 md:px-6 max-w-7xl mx-auto">
+                {/* Mobile Logo */}
+                <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
+                    <div className="bg-black text-white p-1 rounded-full">
+                        <Sparkles size={16} fill="currentColor" />
+                    </div>
+                    <span className="text-sm font-bold tracking-tight">Asterscholar</span>
+                </Link>
+
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="mb-10 text-center"
+                    className="mb-8 text-center"
                 >
-                    <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-stone-200 shadow-sm mb-6">
-                        <ShieldCheck size={16} className="text-black" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-stone-500">Research Integrity Tool</span>
+                    <div className="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-sm mb-4">
+                        <ShieldCheck size={14} className="text-black" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Research Integrity Tool</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
                         Reference Verifier
                     </h1>
-                    <p className="text-xl text-stone-500 max-w-2xl mx-auto">
+                    <p className="text-sm md:text-base text-stone-600 max-w-2xl mx-auto">
                         Verify citations, detect hallucinations, and correct references with AI-powered scholarly search.
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-320px)] min-h-[600px]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
                     {/* Input Section */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-stone-200/50 flex flex-col border border-stone-100"
+                        className="bg-white rounded-2xl p-5 md:p-6 shadow-lg shadow-stone-200/50 flex flex-col border border-stone-100"
                     >
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-bold flex items-center gap-2">
-                                <FileText size={20} className="text-stone-400" />
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-base font-bold flex items-center gap-2">
+                                <FileText size={18} className="text-stone-400" />
                                 Input Text
                             </h2>
                             <button
@@ -82,25 +91,25 @@ export default function ReferenceVerifier() {
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder="Paste your text with citations here (e.g., 'As reported by Einstein (2025)...'). We'll check every reference against real scholarly databases."
-                            className="flex-1 w-full p-4 bg-[#FAF9F6] border border-stone-100 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-black/5 text-lg leading-relaxed transition-all placeholder:text-stone-300"
+                            className="flex-1 w-full p-3 bg-[#FAF9F6] border border-stone-100 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-black/5 text-sm leading-relaxed transition-all placeholder:text-stone-300"
                         />
 
-                        <div className="mt-6 flex justify-end">
+                        <div className="mt-5 flex justify-end">
                             <button
                                 onClick={handleVerify}
                                 disabled={!inputText.trim() || isLoading}
-                                className="bg-black text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-xl hover:shadow-black/10 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                className="bg-black text-white px-6 py-3 rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-black/10 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
                             >
                                 {isLoading ? (
                                     <>
-                                        <RefreshCw size={20} className="animate-spin" />
+                                        <RefreshCw size={16} className="animate-spin" />
                                         Verifying...
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={20} />
+                                        <Sparkles size={16} />
                                         Verify References
-                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
                             </button>
@@ -112,13 +121,13 @@ export default function ReferenceVerifier() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-stone-200/50 flex flex-col border border-stone-100 relative overflow-hidden"
+                        className="bg-white rounded-2xl p-5 md:p-6 shadow-lg shadow-stone-200/50 flex flex-col border border-stone-100 relative overflow-hidden"
                     >
                         <div className="absolute inset-0 mesh-pattern opacity-[0.05] pointer-events-none" />
 
-                        <div className="flex items-center justify-between mb-6 relative z-10">
-                            <h2 className="text-lg font-bold flex items-center gap-2">
-                                <ShieldCheck size={20} className={isLoading ? "text-blue-500 animate-pulse" : "text-green-500"} />
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                            <h2 className="text-base font-bold flex items-center gap-2">
+                                <ShieldCheck size={18} className={isLoading ? "text-blue-500 animate-pulse" : "text-green-500"} />
                                 Verification Report
                             </h2>
                             {isLoading && (
@@ -130,34 +139,34 @@ export default function ReferenceVerifier() {
 
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                             {!started ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center text-stone-400 p-8 space-y-4">
-                                    <div className="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mb-2">
-                                        <Search size={32} strokeWidth={1.5} />
+                                <div className="h-full flex flex-col items-center justify-center text-center text-stone-400 p-6 space-y-3">
+                                    <div className="w-12 h-12 bg-stone-50 rounded-full flex items-center justify-center mb-2">
+                                        <Search size={24} strokeWidth={1.5} />
                                     </div>
-                                    <p className="max-w-xs">
+                                    <p className="text-sm max-w-xs">
                                         Paste your text on the left to start verifying citations against 200M+ scholarly papers.
                                     </p>
                                 </div>
                             ) : (
-                                <div className="prose prose-stone max-w-none">
+                                <div className="prose prose-stone max-w-none text-sm">
                                     {latestMessage?.content ? (
                                         <ReactMarkdown
                                             components={{
-                                                h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-8 mb-4 pb-2 border-b border-stone-100" {...props} />,
-                                                table: ({ node, ...props }) => <div className="overflow-x-auto my-6 bg-stone-50 rounded-xl border border-stone-100"><table className="w-full text-sm" {...props} /></div>,
+                                                h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-3 pb-2 border-b border-stone-100" {...props} />,
+                                                table: ({ node, ...props }) => <div className="overflow-x-auto my-4 bg-stone-50 rounded-lg border border-stone-100"><table className="w-full text-xs" {...props} /></div>,
                                                 thead: ({ node, ...props }) => <thead className="bg-stone-100 text-left font-bold" {...props} />,
-                                                th: ({ node, ...props }) => <th className="p-3 whitespace-nowrap" {...props} />,
-                                                td: ({ node, ...props }) => <td className="p-3 border-t border-stone-200" {...props} />,
+                                                th: ({ node, ...props }) => <th className="p-2 whitespace-nowrap" {...props} />,
+                                                td: ({ node, ...props }) => <td className="p-2 border-t border-stone-200" {...props} />,
                                             }}
                                         >
                                             {latestMessage.content}
                                         </ReactMarkdown>
                                     ) : (
-                                        <div className="flex flex-col gap-4 animate-pulse">
-                                            <div className="h-4 bg-stone-100 rounded w-3/4"></div>
-                                            <div className="h-4 bg-stone-100 rounded w-full"></div>
-                                            <div className="h-4 bg-stone-100 rounded w-5/6"></div>
-                                            <div className="h-32 bg-stone-50 rounded-xl mt-4"></div>
+                                        <div className="flex flex-col gap-3 animate-pulse">
+                                            <div className="h-3 bg-stone-100 rounded w-3/4"></div>
+                                            <div className="h-3 bg-stone-100 rounded w-full"></div>
+                                            <div className="h-3 bg-stone-100 rounded w-5/6"></div>
+                                            <div className="h-24 bg-stone-50 rounded-lg mt-3"></div>
                                         </div>
                                     )}
                                 </div>
