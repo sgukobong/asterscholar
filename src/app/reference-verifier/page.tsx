@@ -39,7 +39,7 @@ export default function ReferenceVerifier() {
         <div className="min-h-screen bg-[#EAE8E2] text-stone-900 font-sans selection:bg-black/10">
             <Navigation />
 
-            <div className="pt-20 pb-8 px-4 md:px-6 max-w-7xl mx-auto">
+            <div className="pt-20 pb-8 px-4 md:px-8 lg:px-12 w-full">
                 {/* Mobile Logo */}
                 <Link href="/" className="lg:hidden flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
                     <div className="bg-black text-white p-1 rounded-full">
